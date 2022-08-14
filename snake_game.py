@@ -8,56 +8,57 @@ from pygame.font import Font
 
 
 class Food(object):
-    spawn: bool = False
-    position: list = []
-    color: Color
-
-    def __init__(self, position: list, color: Color):
-        self.position = position
+    def __init__(self, position: list[int, int], color: Color):
+        self._position: list = []
         self.color = color
+        self._spawn: bool = False
+        self.color: Color = color
 
-        self.spawn_new(position[0], position[1])
+        self.add(position[0], position[1])
 
-    def set_position(self, dx: int, dy: int) -> list:
-        self.position = [dx, dy]
-        return self.position
+    @property
+    def position(self) -> list[int, int]:
+        return self._position
 
-    def set_spawn(self, is_spawn: bool):
-        self.spawn = is_spawn
+    @position.setter
+    def position(self, position: list[int, int]):
+        self._position = position
 
-    def is_spawn(self) -> bool:
-        return self.spawn
+    @property
+    def spawn(self) -> bool:
+        return self._spawn
 
-    def spawn_new(self, x, y):
+    @spawn.setter
+    def spawn(self, is_spawn: bool):
+        self._spawn = is_spawn
+
+    def add(self, dx: int, dy: int):
         if not self.spawn:
-            self.position = [x, y]
+            self._position = [dx, dy]
             self.spawn = True
 
     def draw(self, surface: pygame.Surface):
-        pygame.draw.rect(surface, self.color, pygame.Rect(self.position[0], self.position[1], 10, 10))
+        pygame.draw.rect(surface, self.color, pygame.Rect(self._position[0], self._position[1], 10, 10))
 
 
 class Snake(object):
-
     class Direction(Enum):
         LEFT: int = 1
         RIGHT: int = 2
         UP: int = 3
         DOWN: int = 4
 
-    body: list[list] = []
-    position: list = []
-    direction: int = Direction.RIGHT
-    color: Color
-
     def __init__(self,
                  position: list[int, int],
                  color: Color,
                  block_size: int = 10,
                  body_size: int = 3):
-        self.position = position
-        self.block_size = block_size
-        self.color = color
+
+        self.position: list = position
+        self.body: list[list[int, int]] = []
+        self.block_size: int = block_size
+        self.color: Color = color
+        self._direction = self.Direction.RIGHT
 
         if body_size > 0:
             x = self.position[0]
@@ -70,20 +71,22 @@ class Snake(object):
                 y = by
 
     def move(self, step: int):
-        if self.direction == self.Direction.LEFT:
+        if self._direction == self.Direction.LEFT:
             self.position[0] -= step
-        if self.direction == self.Direction.RIGHT:
+        if self._direction == self.Direction.RIGHT:
             self.position[0] += step
-        if self.direction == self.Direction.UP:
+        if self._direction == self.Direction.UP:
             self.position[1] -= step
-        if self.direction == self.Direction.DOWN:
+        if self._direction == self.Direction.DOWN:
             self.position[1] += step
 
-    def set_direction(self, new_direction: int):
-        self.direction = new_direction
+    @property
+    def direction(self) -> int:
+        return self._direction
 
-    def get_direction(self) -> int:
-        return self.direction
+    @direction.setter
+    def direction(self, new_direction: int):
+        self._direction = new_direction
 
     def pop(self):
         return self.body.pop()
@@ -111,7 +114,7 @@ def show_score(surface: pygame.Surface, score: int, font: str = '', font_size: i
     font: str = font if len(font) > 0 else pygame.font.get_default_font()
 
     score_font: Font = pygame.font.Font(font, font_size)
-    score_surface:pygame.Surface = score_font.render(f'Score: {score}', True, white)
+    score_surface: pygame.Surface = score_font.render(f'Score: {score}', True, white)
     score_rect = score_surface.get_rect()
 
     surface.blit(source=score_surface, dest=score_rect)
@@ -159,27 +162,27 @@ while not game_over:
             exit()
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT and snake.get_direction() != snake.Direction.RIGHT:
-                snake.set_direction(snake.Direction.LEFT)
-            if event.key == pygame.K_RIGHT and snake.get_direction() != snake.Direction.LEFT:
-                snake.set_direction(snake.Direction.RIGHT)
-            if event.key == pygame.K_DOWN and snake.get_direction() != snake.Direction.UP:
-                snake.set_direction(snake.Direction.DOWN)
-            if event.key == pygame.K_UP and snake.get_direction() != snake.Direction.DOWN:
-                snake.set_direction(snake.Direction.UP)
+            if event.key == pygame.K_LEFT and snake.direction != snake.Direction.RIGHT:
+                snake.direction = snake.Direction.LEFT
+            if event.key == pygame.K_RIGHT and snake.direction != snake.Direction.LEFT:
+                snake.direction = snake.Direction.RIGHT
+            if event.key == pygame.K_DOWN and snake.direction != snake.Direction.UP:
+                snake.direction = snake.Direction.DOWN
+            if event.key == pygame.K_UP and snake.direction != snake.Direction.DOWN:
+                snake.direction = snake.Direction.UP
 
     snake.move(10)
     snake.insert(0, snake.position)
 
     if snake.position[0] == food.position[0] and snake.position[1] == food.position[1]:
         score += 10
-        food.set_spawn(False)
+        food.spawn = False
     else:
         snake.pop()
 
-    if not food.is_spawn():
-        food.set_position(random.randrange(1, window_x // 10) * 10, random.randrange(1, window_y // 10) * 10)
-        food.set_spawn(True)
+    if not food.spawn:
+        food.position = [random.randrange(1, window_x // 10) * 10, random.randrange(1, window_y // 10) * 10]
+        food.spawn = True
 
     surface.fill(color=black)
 
@@ -201,7 +204,7 @@ end_font: Font = pygame.font.Font(pygame.font.get_default_font(), 32)
 end_surface: surface = end_font.render(f'Your Scored : {score}', True, red, black)
 
 end_rect = end_surface.get_rect()
-end_rect.midtop = (window_x/2, window_y/2)
+end_rect.midtop = (window_x / 2, window_y / 2)
 
 surface.blit(source=end_surface, dest=end_rect)
 pygame.display.flip()
